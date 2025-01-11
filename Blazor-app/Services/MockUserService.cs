@@ -97,7 +97,7 @@ namespace Blazor_app.Services
         public async Task<IEnumerable<User>> GetUsers()
         {
             await Task.Delay(500); // Simulate network delay
-            return _users.Take(5); // Only return first 5 users
+            return _users.Take(5); // retunera bara fem users
         }
 
         public async Task<IEnumerable<User>> SearchUsers(string searchTerm)
@@ -113,7 +113,7 @@ namespace Blazor_app.Services
 
         public async Task<IEnumerable<TodoItem>> GetUserTodos(int userId)
         {
-            // Return mock todos
+            // retunera mock data
             return new List<TodoItem>
             {
                 new TodoItem { UserId = userId, Id = 1, Title = "Mock Todo 1", Completed = false },
