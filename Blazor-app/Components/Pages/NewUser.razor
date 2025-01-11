@@ -1,0 +1,235 @@
+﻿@page "/new-user"
+@using Microsoft.AspNetCore.Components
+@using Microsoft.AspNetCore.Components.Forms
+@using Blazor_app.Models
+@using Blazor_app.Interfaces
+@using Blazor_app.Services
+@inject MockUserService UserService
+@inject NavigationManager NavigationManager
+@rendermode InteractiveServer
+
+<div class="container">
+    @if (!isSubmitted)
+
+    {
+        <h1>Lägg till ny användare</h1>
+        <EditForm FormName="newUserForm" Model="@newUser" OnValidSubmit="HandleSubmit">
+            <div class="form-group">
+                <label>Namn:</label>
+                <InputText @bind-Value="newUser.Name" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label>Email:</label>
+                <InputText @bind-Value="newUser.Email" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label>Adress:</label>
+                <InputText @bind-Value="newUser.Address.Street" placeholder="Gata" class="form-control" />
+                <InputText @bind-Value="newUser.Address.City" placeholder="Stad" class="form-control" />
+                <InputText @bind-Value="newUser.Address.ZipCode" placeholder="Postnummer" class="form-control" />
+            </div>
+
+            <div class="form-group">
+                <label>Företag:</label>
+                <InputText @bind-Value="newUser.Company.Name" placeholder="Företagsnamn" class="form-control" />
+                <InputText @bind-Value="newUser.Company.CatchPhrase" placeholder="Slogan" class="form-control" />
+            </div>
+
+            <button type="submit" class="btn btn-primary">Spara</button>
+            <button type="button" @onclick="NavigateToUsers" class="btn btn-secondary">Avbryt</button>
+        </EditForm>
+    }
+
+    else
+
+    {
+        <div class="confirmation-box">
+            <div class="success-header">
+                <i class="success-icon">✓</i>
+                <h2>Användaren har sparats!</h2>
+            </div>
+            <div class="user-details">
+                <div class="detail-section">
+                    <h3>Personlig Information</h3>
+                    <div class="detail-item">
+                        <span class="label">Namn:</span>
+                        <span class="value">@newUser.Name</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Email:</span>
+                        <span class="value">@newUser.Email</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Adress</h3>
+                    <div class="detail-item">
+                        <span class="label">Gata:</span>
+                        <span class="value">@newUser.Address.Street</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Stad:</span>
+                        <span class="value">@newUser.Address.City</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Postnummer:</span>
+                        <span class="value">@newUser.Address.ZipCode</span>
+                    </div>
+                </div>
+
+                <div class="detail-section">
+                    <h3>Företagsinformation</h3>
+                    <div class="detail-item">
+                        <span class="label">Företagsnamn:</span>
+                        <span class="value">@newUser.Company.Name</span>
+                    </div>
+                    <div class="detail-item">
+                        <span class="label">Slogan:</span>
+                        <span class="value">@newUser.Company.CatchPhrase</span>
+                    </div>
+                </div>
+            </div>
+            <div class="button-group">
+                <button @onclick="NavigateToUsers" class="btn btn-primary">Visa alla användare</button>
+            </div>
+        </div>
+    }
+</div>
+
+<style>
+    .container {
+        max-width: 800px;
+        margin: 20px auto;
+        padding: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 15px;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 8px;
+        margin: 5px 0;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn {
+        padding: 8px 15px;
+        margin: 5px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .confirmation-box {
+        background-color: #f8f9fa;
+        border: 1px solid #dee2e6;
+        border-radius: 8px;
+        padding: 20px;
+    }
+
+    .success-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        color: #28a745;
+    }
+
+    .success-icon {
+        font-size: 24px;
+        margin-right: 10px;
+        background-color: #28a745;
+        color: white;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .user-details {
+        margin: 20px 0;
+    }
+
+    .detail-section {
+        margin-bottom: 20px;
+    }
+
+        .detail-section h3 {
+            color: #495057;
+            border-bottom: 1px solid #dee2e6;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+
+    .detail-item {
+        display: flex;
+        margin: 8px 0;
+        padding: 4px 0;
+    }
+
+    .label {
+        font-weight: bold;
+        width: 150px;
+        color: #495057;
+    }
+
+    .value {
+        color: #212529;
+    }
+
+    .button-group {
+        margin-top: 20px;
+        padding-top: 20px;
+        border-top: 1px solid #dee2e6;
+    }
+</style>
+
+@code {
+    private User newUser = new()
+
+        {
+
+            Address = new Address(),
+
+            Company = new Company()
+
+        };
+
+    private bool isSubmitted = false;
+
+
+    private async Task HandleSubmit()
+
+    {
+
+        await UserService.AddUserAsync(newUser);
+
+        isSubmitted = true;
+
+    }
+
+
+    private void NavigateToUsers()
+
+    {
+
+        NavigationManager.NavigateTo("/users");
+
+    }
+}

@@ -1,0 +1,427 @@
+﻿@page "/users"
+@using Microsoft.AspNetCore.Components
+@using Blazor_app.Models
+@using Blazor_app.Interfaces
+@using Blazor_app.Services
+@inject IServiceProvider ServiceProvider
+@rendermode InteractiveServer
+
+<PageTitle>Användare</PageTitle>
+
+<div class="container">
+    <h1>Användare</h1>
+
+    <div class="search-area">
+        <input type="text"
+               placeholder="Sök användare..."
+               @bind-value="searchTerm"
+               @bind-value:event="oninput"
+               @onkeyup="SearchUsers"
+               class="form-control" />
+        <button @onclick="ToggleDataSource" class="btn btn-primary">
+            @(usingApi ? "Visa Mock Data" : "Visa API Data")
+        </button>
+        <button @onclick="() => SortUsers(nameof(User.Name))" class="btn btn-secondary">
+            Sortera på namn @(sortAscending ? "↑" : "↓")
+        </button>
+    </div>
+
+    @if (loading)
+
+    {
+        <div class="loading">Laddar...</div>
+    }
+
+    else
+
+    {
+        <table class="table">
+            <thead>
+                <tr>
+                    <th @onclick="() => SortUsers(nameof(User.Id))">
+                        ID @(currentSortField == nameof(User.Id) ? (sortAscending ? "↑" : "↓") : "")
+                    </th>
+                    <th @onclick="() => SortUsers(nameof(User.Name))">
+                        Namn @(currentSortField == nameof(User.Name) ? (sortAscending ? "↑" : "↓") : "")
+                    </th>
+                    <th>Email</th>
+                    <th>Stad</th>
+                    <th>Företag</th>
+                    <th>Åtgärder</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var user in displayedUsers)
+
+                {
+                    <tr>
+                        <td>@user.Id</td>
+                        <td>@user.Name</td>
+                        <td>@user.Email</td>
+                        <td>@user.Address?.City</td>
+                        <td>@user.Company?.Name</td>
+                        <td>
+                            <button @onclick="() => ShowTodos(user.Id)" class="btn btn-primary">
+                                Visa todos
+                            </button>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        @if (selectedUserId.HasValue)
+
+        {
+            <div class="todos-section">
+                <h2>Todos för användare @selectedUserId</h2>
+
+                <div class="todos-filter">
+                    <input type="text"
+                           placeholder="Sök todos..."
+                           @bind-value="todoSearchTerm"
+                           @bind-value:event="oninput"
+                           class="form-control" />
+
+                    <label>
+                        <input type="checkbox" @bind="showOnlyIncomplete">
+                        Visa endast oavslutade
+                    </label>
+                </div>
+
+                @if (loadingTodos)
+
+                {
+                    <div class="loading">Laddar todos...</div>
+                }
+
+                else
+
+                {
+                    <div class="todos-list">
+                        @foreach (var todo in FilteredTodos)
+
+                        {
+                            <div class="todo-item @(todo.Completed ? "completed" : "")">
+                                <label>
+                                    <input type="checkbox" checked="@todo.Completed" disabled />
+                                    <span>@todo.Title</span>
+                                </label>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    }
+</div>
+
+<style>
+    .container {
+        margin: 20px;
+    }
+
+    .search-area {
+        margin: 20px 0;
+        display: flex;
+        gap: 10px;
+    }
+
+    .form-control {
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+    }
+
+    .btn {
+        padding: 5px 10px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+    }
+
+    .btn-primary {
+        background-color: #007bff;
+        color: white;
+    }
+
+    .btn-secondary {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 20px 0;
+    }
+
+        .table th, .table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .table th {
+            background-color: #f5f5f5;
+            cursor: pointer;
+        }
+
+        .table tr:nth-child(even) {
+            background-color: #f9f9f9;
+        }
+
+    .todos-section {
+        margin-top: 20px;
+        padding: 20px;
+        border: 1px solid #ddd;
+        border-radius: 4px;
+    }
+
+    .todos-filter {
+        margin: 15px 0;
+        display: flex;
+        gap: 20px;
+        align-items: center;
+    }
+
+    .todo-item {
+        padding: 8px;
+        margin: 5px 0;
+        border: 1px solid #eee;
+        border-radius: 4px;
+    }
+
+        .todo-item.completed {
+            background-color: #f0f0f0;
+        }
+
+    .loading {
+        text-align: center;
+        padding: 20px;
+    }
+</style>
+
+@code {
+    private bool loading = true;
+
+    private bool loadingTodos = false;
+
+    private bool usingApi = false;
+
+    private string searchTerm = "";
+
+    private string todoSearchTerm = "";
+
+    private bool showOnlyIncomplete = false;
+
+    private bool sortAscending = true;
+
+    private string currentSortField = nameof(User.Name);
+
+    private List<User> allUsers = new();
+
+    private List<User> displayedUsers = new();
+
+    private List<TodoItem> todos = new();
+
+    private int? selectedUserId;
+
+
+
+    private IUserService UserService => usingApi
+
+        ? ServiceProvider.GetRequiredService<ApiUserService>()
+
+        : ServiceProvider.GetRequiredService<MockUserService>();
+
+
+
+    protected override async Task OnInitializedAsync()
+
+    {
+
+        await LoadUsers();
+
+    }
+
+
+
+    private async Task LoadUsers()
+
+    {
+
+        loading = true;
+
+        try
+
+        {
+
+            allUsers = (await UserService.GetUsers()).ToList();
+
+            await ApplyFiltersAndSort();
+
+        }
+
+        finally
+
+        {
+
+            loading = false;
+
+        }
+
+    }
+
+
+
+    private async Task SearchUsers()
+
+    {
+
+        loading = true;
+
+        try
+
+        {
+
+            displayedUsers = (await UserService.SearchUsers(searchTerm)).ToList();
+
+            SortUsers(currentSortField);
+
+        }
+
+        finally
+
+        {
+
+            loading = false;
+
+        }
+
+    }
+
+
+
+    private async Task ShowTodos(int userId)
+
+    {
+
+        selectedUserId = userId;
+
+        loadingTodos = true;
+
+        try
+
+        {
+
+            todos = (await UserService.GetUserTodos(userId)).ToList();
+
+        }
+
+        finally
+
+        {
+
+            loadingTodos = false;
+
+        }
+
+    }
+
+
+
+    private IEnumerable<TodoItem> FilteredTodos => todos
+
+        .Where(t => !showOnlyIncomplete || !t.Completed)
+
+        .Where(t => string.IsNullOrEmpty(todoSearchTerm) ||
+
+                   t.Title.Contains(todoSearchTerm, StringComparison.OrdinalIgnoreCase));
+
+
+
+    private async Task ToggleDataSource()
+
+    {
+
+        usingApi = !usingApi;
+
+        await LoadUsers();
+
+    }
+
+
+
+    private void SortUsers(string field)
+
+    {
+
+        if (currentSortField == field)
+
+        {
+
+            sortAscending = !sortAscending;
+
+        }
+
+        else
+
+        {
+
+            currentSortField = field;
+
+            sortAscending = true;
+
+        }
+
+
+
+        var query = displayedUsers.AsQueryable();
+
+
+
+        query = field switch
+
+        {
+
+            nameof(User.Id) => sortAscending ?
+
+                query.OrderBy(u => u.Id) :
+
+                query.OrderByDescending(u => u.Id),
+
+
+
+            nameof(User.Name) => sortAscending ?
+
+                query.OrderBy(u => u.Name) :
+
+                query.OrderByDescending(u => u.Name),
+
+
+
+            _ => query
+
+        };
+
+
+
+        displayedUsers = query.ToList();
+
+    }
+
+
+
+    private Task ApplyFiltersAndSort()
+
+    {
+
+        displayedUsers = allUsers;
+
+        SortUsers(currentSortField);
+
+        return Task.CompletedTask;
+
+    }
+}

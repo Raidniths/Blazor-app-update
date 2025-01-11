@@ -1,0 +1,97 @@
+﻿@using Blazor_app.Models
+@using Blazor_app.Interfaces
+@inject IUserService UserService
+
+<div class="container mt-4">
+    <!-- Rubrik och knapp-->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h4>User Todos</h4>
+        <button class="btn btn-secondary" @onclick="OnBack">Back to Users</button>
+    </div>
+    <!-- Sökfält och filter för att visa oavslutade todos-->
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <div class="input-group">
+                <input type="text" class="form-control" placeholder="Search todos..."
+                       @bind="searchTerm" @bind:event="oninput" />
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="form-check">
+                <input class="form-check-input" type="checkbox" @bind="showOnlyIncomplete" id="showIncomplete">
+                <label class="form-check-label" for="showIncomplete">
+                    Show only incomplete todos
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <!-- Visar laddning medan todos laddas-->
+    @if (loading)
+    {
+        <div class="text-center">
+            <div class="spinner-border" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading todos...</p>
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Status</th>
+                        <th>Title</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- Loopar genom filtrerade todos och visar deras status och titel -->
+                    @foreach (var todo in FilteredTodos)
+                    {
+                        <tr>
+                            <td>
+                                <input type="checkbox" checked="@todo.Completed" disabled />
+                            </td>
+                            <td class="@(todo.Completed ? "text-decoration-line-through" : "")">
+                                @todo.Title
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public int UserId { get; set; }
+    [Parameter] public EventCallback OnBack { get; set; }
+
+    // Lista för att lagra todos
+    private List<TodoItem> todos = new();
+    private bool loading = true;
+    private string searchTerm = "";
+    private bool showOnlyIncomplete;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadTodos();
+    }
+
+    //Hämtar todos
+    private async Task LoadTodos()
+    {
+        loading = true;
+        todos = (await UserService.GetUserTodos(UserId)).ToList();
+        loading = false;
+    }
+
+    //Filterar todos baserat på sök
+    private IEnumerable<TodoItem> FilteredTodos =>
+        todos.Where(t =>
+            (!showOnlyIncomplete || !t.Completed) &&
+            (string.IsNullOrWhiteSpace(searchTerm) ||
+             t.Title.Contains(searchTerm, StringComparison.OrdinalIgnoreCase)));
+}
