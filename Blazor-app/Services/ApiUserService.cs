@@ -7,7 +7,7 @@ namespace Blazor_app.Services
     public class ApiUserService : IUserService
     {
         private readonly HttpClient _httpClient;
-        private List<User> _cachedUsers = new();
+        private List<User> _cachedUsers = new(); // Håller en lokal kopia av användare för att minska anrop till api
 
         public ApiUserService(HttpClient httpClient)
         {
@@ -15,10 +15,13 @@ namespace Blazor_app.Services
             _httpClient.BaseAddress = new Uri("https://jsonplaceholder.typicode.com");
         }
 
+        // Hämtar användare från API:et eller från cachen
         public async Task<IEnumerable<User>> GetUsers()
         {
             try
             {
+                // Om vi inte har några cachade användare, hämta från API:et
+
                 if (!_cachedUsers.Any())
                 {
                     var users = await _httpClient.GetFromJsonAsync<List<User>>("/users");
@@ -27,7 +30,7 @@ namespace Blazor_app.Services
                         _cachedUsers = users;
                     }
                 }
-                return _cachedUsers.Take(5); // Only return first 5 users
+                return _cachedUsers.Take(5); // retunera bara 5 användare
             }
             catch (Exception)
             {
@@ -47,6 +50,7 @@ namespace Blazor_app.Services
             );
         }
 
+        // Hämtar todos från api
         public async Task<IEnumerable<TodoItem>> GetUserTodos(int userId)
         {
             try
@@ -60,23 +64,25 @@ namespace Blazor_app.Services
             }
         }
 
+        // Lägger till en ny användare till api
         public async Task AddUserAsync(User newUser)
         {
             try
             {
+                // Skicka den nya användare till api
                 var response = await _httpClient.PostAsJsonAsync("/users", newUser);
                 if (response.IsSuccessStatusCode)
                 {
                     var addedUser = await response.Content.ReadFromJsonAsync<User>();
                     if (addedUser != null)
                     {
-                        _cachedUsers.Add(addedUser);
+                        _cachedUsers.Add(addedUser); 
                     }
                 }
             }
             catch (Exception)
             {
-                // Handle error appropriately
+                // Om något går fel vid sparande
             }
         }
     }

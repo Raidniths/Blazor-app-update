@@ -6,6 +6,7 @@ namespace Blazor_app.Services
 {
     public class MockUserService : IUserService
     {
+        // Skapar en lista med mock-anvvändare
         private static List<User> _users = new()
 {
     new User
@@ -94,16 +95,17 @@ namespace Blazor_app.Services
         }
     }
 };
+        // Hämtar en lista med mock användare
         public async Task<IEnumerable<User>> GetUsers()
         {
-            await Task.Delay(500); // Simulate network delay
+            await Task.Delay(500); // nätverks delay
             return _users.Take(5); // retunera bara fem users
         }
-
+        // Söker mock-användare
         public async Task<IEnumerable<User>> SearchUsers(string searchTerm)
         {
             if (string.IsNullOrWhiteSpace(searchTerm))
-                return await GetUsers();
+                return await GetUsers(); //Retunera alla användare
 
             return _users.Where(u =>
                 u.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase) ||
@@ -111,6 +113,7 @@ namespace Blazor_app.Services
             );
         }
 
+        //Hämtar todos för mock användare
         public async Task<IEnumerable<TodoItem>> GetUserTodos(int userId)
         {
             // retunera mock data
